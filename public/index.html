@@ -1,7 +1,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Muktoverse - Portfolio of Dewan Mukto</title>
+  <title>Muktoverse</title>
   <meta name="description" content="An interactive portfolio website of Dewan Mukto, powered by AFrame.IO and WebVR. Explore in 3D!" />
   <meta name="keywords" content="muktoverse, muktonet, mukto.net, the muktoverse, dewan mukto, dewan mukto co, #muktoverse, #dewanmuktoco, mukto verse, mukto net">
   <meta name="author" content="Dewan Mukto">
@@ -10,11 +10,17 @@
 
   <!-- AFRAme & components -->
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.slim.js"></script>
+  <script src="https://unpkg.com/networked-aframe@^0.7.1/dist/networked-aframe.min.js"></script>
+  <script src="https://unpkg.com/aframe-randomizer-components@^3.0.1/dist/aframe-randomizer-components.min.js"></script>
+  <script src="https://unpkg.com/aframe-particle-system-component@1.0.5/dist/aframe-particle-system-component.min.js"></script>
+  <script src="/js/spawn-in-circle.component.js"></script>
+  <script src="https://unpkg.com/aframe-text-geometry-component@^0.5.0/dist/aframe-text-geometry-component.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
-  <script src="https://unpkg.com/aframe-physics-system@4.0.1/dist/aframe-physics-system.min.js"></script>
 </head>
+
 <body>
-<a-scene physics="gravity: -9.8" vr-mode-ui="enabled: false">
+<a-scene physics="gravity: -9.8" networked-scene="room: basic;debug: true;" vr-mode-ui="enabled: false" loading-screen="enabled: true;">
 
   <!-- ASSETS -->
   <a-assets>
@@ -24,13 +30,57 @@
     <img id="skyTexture1" src="assets/aft_lounge_4k.png" />
     <img id="skyTexture2" src="assets/blouberg_sunrise_2_4k.png" />
     <img id="boxTexture" src="https://i.seadn.io/gae/A-GaHQdmGnbtnI-Znls_8WZm6FXrKUX7eDr2bhCfT3lqJ_N17n4uGV4WESnz1TcfxEFmm6Et-FK15QXT4a8l5buKn2IkYZbjMxjkjuA?auto=format&w=1920" />
-    <img id="muktoLogo" src="https://dewanmukto.github.io/asset/logos/logo.png" />
+    <img id="muktoLogo" src="https://dm.mux8.com/asset/logos/logo.png" />
+    <img id="muktosplash" src="assets/dmc_banner_tp.png" />
+
+    <!-- avatar template -->
+    <template id="avatar-template">
+      <a-entity class="avatar">
+        <a-box class="head" color="#5985ff" scale="0.45 0.5 0.4" src="#boxTexture" random-color></a-box>
+        <a-entity class="face" position="0 0.05 0">
+          <a-sphere class="eye" color="#efefef" position="0.12 0.02 -0.15" scale="0.1 0.1 0.1">
+            <a-sphere class="pupil" color="#000" position="0 0 -1" scale="0.2 0.2 0.2"></a-sphere>
+          </a-sphere>
+          <a-sphere class="eye" color="#efefef" position="-0.12 0.02 -0.15" scale="0.1 0.1 0.1">
+            <a-sphere class="pupil" color="#000" position="0 0 -1" scale="0.2 0.2 0.2"></a-sphere>
+          </a-sphere>
+        </a-entity>
+      </a-entity>
+    </template>
   </a-assets>
 
   <!-- PLAYER -->
-  <a-entity id="player" camera wasd-controls look-controls kinematic-body
-            position="0 1.6 0" jump-controls>
+  <a-entity id="player" camera networked="template:#avatar-template;attachTemplateToLocal:false;" position="0 1.6 0"
+            spawn-in-circle="radius:2" wasd-controls look-controls kinematic-body>
+    <a-sphere class="head" visible="false" random-color></a-sphere>
   </a-entity>
+
+  <!-- GALLERY LAYOUT -->
+  <a-entity id="gallery"></a-entity>
+
+  <script>
+    const galleryImages = [
+      {src:"assets/original-3743ff23b01ec3c79d77c427ef685987.png", pos:[-4,4,-5], rot:[0,45,0], url:"https://behance.net/dmkto"},
+      {src:"https://cdn.dribbble.com/userupload/10753052/file/original-882c377e90e8711075bf0a29928ff2a0.png", pos:[0,5,-15], rot:[0,0,0], url:""},
+      {src:"assets/original-f3047bd2e40cc447074695b1b6bf880d.png", pos:[4,4,-5], rot:[0,-45,0], url:"https://dribbble.com/dmkto"},
+      {src:"assets/original-901f295283dbfd83577cc91fccaf650a.jpg", pos:[15,5,0], rot:[0,-90,0], url:""},
+      {src:"assets/original-aea20384f5940ce206474c3b63a5bacd.png", pos:[4,4,5], rot:[0,-135,0], url:""},
+      {src:"assets/4135123a679bb5150e9d6334d27505ce.png", pos:[0,5,15], rot:[0,180,0], url:""},
+      {src:"assets/original-c76478d833017f6d0c52568f53c13407.png", pos:[-4,4,5], rot:[0,135,0], url:""},
+      {src:"assets/2f87efc0141aea0b41250f876f2d128b.png", pos:[-15,5,0], rot:[0,90,0], url:""}
+    ];
+    const gallery = document.querySelector('#gallery');
+    galleryImages.forEach(img=>{
+      const aimg = document.createElement('a-image');
+      aimg.setAttribute('src', img.src);
+      aimg.setAttribute('position', img.pos.join(' '));
+      aimg.setAttribute('rotation', img.rot.join(' '));
+      aimg.setAttribute('height',6);
+      aimg.setAttribute('width',8);
+      if(img.url) aimg.setAttribute('onclick', `window.open('${img.url}')`);
+      gallery.appendChild(aimg);
+    });
+  </script>
 
   <!-- HOLODISC -->
   <a-entity id="holodisc" position="0 1.6 -3">
@@ -71,10 +121,9 @@
   </a-entity>
 
   <!-- MUKTO CUBE -->
-  <a-box position="-1 1 -3" rotation="0 45 0" color="#ff0a45" src="#boxTexture"
+  <a-box position="-1 10 -3" rotation="0 45 0" color="#ff0a45" src="#boxTexture"
          animation__mouseenter="property: scale; to: 5.3 5.3 5.3; dur: 300; startEvents: mouseenter"
-         animation__mouseleave="property: scale; to: 1 1 1; dur: 300; startEvents: mouseleave"
-         static-body></a-box>
+         animation__mouseleave="property: scale; to: 1 1 1; dur: 300; startEvents: mouseleave"></a-box>
 
   <!-- SCENE BASE & SKY -->
   <a-cylinder id="ground" src="#groundTexture" radius="100" height="0.1" static-body></a-cylinder>
@@ -93,68 +142,23 @@
   <a-entity id="particles" particle-system="preset: snow"></a-entity>
   <a-entity light="type: ambient; intensity: 0.5;"></a-entity>
 
-  <!-- 3D SCAFFOLDING GALLERY -->
-  <a-entity id="gallery"></a-entity>
+  <!-- JUMP SCRIPT -->
   <script>
-    const galleryImages = [
-      {src:"assets/original-3743ff23b01ec3c79d77c427ef685987.png", url:"https://behance.net/dmkto"},
-      {src:"https://cdn.dribbble.com/userupload/10753052/file/original-882c377e90e8711075bf0a29928ff2a0.png", url:""},
-      {src:"assets/original-f3047bd2e40cc447074695b1b6bf880d.png", url:"https://dribbble.com/dmkto"},
-      {src:"assets/original-901f295283dbfd83577cc91fccaf650a.jpg", url:""},
-      {src:"assets/original-aea20384f5940ce206474c3b63a5bacd.png", url:""},
-      {src:"assets/4135123a679bb5150e9d6334d27505ce.png", url:""},
-      {src:"assets/original-c76478d833017f6d0c52568f53c13407.png", url:""},
-      {src:"assets/2f87efc0141aea0b41250f876f2d128b.png", url:""}
-    ];
-    const gallery = document.querySelector('#gallery');
-    const radius = 15;
-    galleryImages.forEach((img,i)=>{
-      const angle = i * (360 / galleryImages.length);
-      const rad = angle * Math.PI/180;
-      const x = Math.sin(rad) * radius;
-      const z = Math.cos(rad) * radius;
-      const scaffoldHeight = 6;
-      const scaffold = document.createElement('a-box');
-      scaffold.setAttribute('position', `${x} ${scaffoldHeight/2} ${z}`);
-      scaffold.setAttribute('depth', 0.5);
-      scaffold.setAttribute('width', 1.5);
-      scaffold.setAttribute('height', scaffoldHeight);
-      scaffold.setAttribute('color', '#888');
-      scaffold.setAttribute('rotation', `0 ${-angle} 0`);
-      gallery.appendChild(scaffold);
-
-      const aimg = document.createElement('a-image');
-      aimg.setAttribute('src', img.src);
-      aimg.setAttribute('height', 4);
-      aimg.setAttribute('width', 6);
-      aimg.setAttribute('position', `${x} ${scaffoldHeight + 2} ${z}`);
-      aimg.setAttribute('rotation', `0 ${-angle} 0`);
-      if(img.url) aimg.setAttribute('onclick', `window.open('${img.url}')`);
-      gallery.appendChild(aimg);
-    });
-  </script>
-
-  <!-- JUMP WITH COOLDOWN -->
-  <script>
-    let canJump = true;
-    const playerEl = document.querySelector('#player');
-    const jumpVelocity = 5;
-
-    AFRAME.registerComponent('jump-controls', {
-      init: function() {
-        const el = this.el;
-        window.addEventListener('keydown', (e)=>{
-          if(e.code==='Space' && canJump){
-            canJump = false;
-            const body = el.body;
-            if(body) body.velocity.y = jumpVelocity;
-            setTimeout(()=>{canJump = true;}, 600);
-          }
-        });
+    const player = document.querySelector('#player');
+    window.addEventListener('keydown', e=>{
+      if(e.code === "Space"){
+        const body = player.body || player.getAttribute('body');
+        if(body){
+          // apply upward velocity for jump
+          body.velocity = body.velocity || {x:0, y:0, z:0};
+          body.velocity.y = 5;
+        } else {
+          const pos = player.getAttribute('position');
+          player.setAttribute('position', {x: pos.x, y: pos.y+1, z: pos.z});
+        }
       }
     });
   </script>
-
 </a-scene>
 </body>
 </html>
